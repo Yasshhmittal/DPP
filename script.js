@@ -1,6 +1,3 @@
-/* ==========================================================================
-   Student Registration Portal - Client-Side Constraints & Logic
-   ========================================================================== */
 
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize Feather Icons
@@ -43,10 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // In-memory student array initialized with sample data
   let registeredStudents = [];
-
-  /* --------------------------------------------------------------------------
-     1. Fetch & Display Initial 5 Students from students.json
-     -------------------------------------------------------------------------- */
   async function loadInitialStudents() {
     try {
       const response = await fetch('students.json');
