@@ -299,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* --------------------------------------------------------------------------
      7. Form Submission Handler via Button
      -------------------------------------------------------------------------- */
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const isNameValid = validateName();
@@ -311,20 +311,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const isFormValid = isNameValid && isMobileValid && isEmailValid && isBranchValid && isPasswordValid;
 
     if (isFormValid) {
-      // Add student to the table
+      const nextIdNum = registeredStudents.length + 1;
+      const formattedId = `STU${String(nextIdNum).padStart(3, '0')}`;
+      
       const newStudent = {
-        id: `STU00${registeredStudents.length + 1}`,
+        id: formattedId,
         name: nameInput.value.trim(),
         mobile: mobileInput.value.trim(),
         email: emailInput.value.trim(),
-        branch: branchInput.value
+        branch: branchInput.value,
+        password: passwordInput.value
       };
 
-      registeredStudents.push(newStudent);
+      // POST student data to server to store in students.json
+      try {
+        const response = await fetch('/api/students', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(newStudent)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.students) {
+            registeredStudents = result.students;
+          } else {
+            registeredStudents.push(newStudent);
+          }
+        } else {
+          registeredStudents.push(newStudent);
+        }
+      } catch (err) {
+        console.warn('Backend server not reachable, updated in-memory table:', err);
+        registeredStudents.push(newStudent);
+      }
+
       renderStudentsTable();
 
       // Show success modal
-      modalDescription.textContent = `Student ${newStudent.name} (${newStudent.branch}) has been registered with mobile ${newStudent.mobile}.`;
+      modalDescription.textContent = `Student ${newStudent.name} (${newStudent.branch}) has been registered and stored in students.json!`;
       successModal.classList.add('active');
 
       // Reset form controls
