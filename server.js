@@ -1,9 +1,26 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const mongoose = require('mongoose');
 
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'students.json');
+
+// MongoDB connection
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://mongo:27017/student-portal';
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.error('MongoDB connection error:', err));
+
+const studentSchema = new mongoose.Schema({
+    id: String,
+    name: String,
+    mobile: String,
+    email: String,
+    branch: String,
+    password: String
+});
+
+const Student = mongoose.model('Student', studentSchema);
 
 const MIME_TYPES = {
     '.html': 'text/html',
@@ -15,7 +32,7 @@ const MIME_TYPES = {
     '.ico': 'image/x-icon'
 };
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -27,38 +44,32 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // Handle POST /api/students to persist new student in students.json
+    // Handle POST /api/students to persist new student in MongoDB
     if (req.method === 'POST' && (req.url === '/api/students' || req.url === '/students.json')) {
         let body = '';
         req.on('data', chunk => {
             body += chunk.toString();
         });
-        req.on('end', () => {
+        req.on('end', async () => {
             try {
-                const newStudent = JSON.parse(body);
-
-                // Read existing students from students.json
-                let students = [];
-                if (fs.existsSync(DATA_FILE)) {
-                    const rawData = fs.readFileSync(DATA_FILE, 'utf8');
-                    students = JSON.parse(rawData);
-                }
+                const newStudentData = JSON.parse(body);
 
                 // Generate ID if missing
-                if (!newStudent.id) {
-                    const nextIdNum = students.length + 1;
-                    newStudent.id = `STU${String(nextIdNum).padStart(3, '0')}`;
+                if (!newStudentData.id) {
+                    const count = await Student.countDocuments();
+                    const nextIdNum = count + 1;
+                    newStudentData.id = `STU${String(nextIdNum).padStart(3, '0')}`;
                 }
 
-                students.push(newStudent);
-
-                // Persist updated student array back to students.json
-                fs.writeFileSync(DATA_FILE, JSON.stringify(students, null, 2), 'utf8');
+                const newStudent = new Student(newStudentData);
+                await newStudent.save();
+                
+                const students = await Student.find({});
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({
                     success: true,
-                    message: 'Student record successfully saved to students.json',
+                    message: 'Student record successfully saved to database',
                     student: newStudent,
                     students: students
                 }));
@@ -73,13 +84,14 @@ const server = http.createServer((req, res) => {
 
     // Handle GET /api/students
     if (req.method === 'GET' && req.url === '/api/students') {
-        if (fs.existsSync(DATA_FILE)) {
-            const rawData = fs.readFileSync(DATA_FILE, 'utf8');
+        try {
+            const students = await Student.find({}, { _id: 0, __v: 0 }); // Exclude _id and __v for cleaner output
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(rawData);
-        } else {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify([]));
+            res.end(JSON.stringify(students));
+        } catch (error) {
+            console.error('Error in GET /api/students:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, message: 'Failed to fetch student data.' }));
         }
         return;
     }

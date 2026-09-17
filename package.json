@@ -13,5 +13,8 @@
     "student-portal"
   ],
   "author": "Yash Mittal",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "mongoose": "^9.10.1"
+  }
 }
