@@ -38,30 +38,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeModalBtn = document.getElementById('closeModalBtn');
   const modalDescription = document.getElementById('modalDescription');
 
-  // In-memory student array initialized with sample data
+  // In-memory student array initialized dynamically
   let registeredStudents = [];
   async function loadInitialStudents() {
     try {
-      const response = await fetch('students.json');
+      const response = await fetch('/api/students');
       if (response.ok) {
         registeredStudents = await response.json();
-        renderStudentsTable();
       } else {
-        fallbackStudents();
+        registeredStudents = [];
       }
     } catch (err) {
-      fallbackStudents();
+      registeredStudents = [];
     }
-  }
-
-  function fallbackStudents() {
-    registeredStudents = [
-      { id: "STU001", name: "Aarav Sharma", mobile: "9876543210", email: "aarav.sharma@gmail.com", branch: "CSE" },
-      { id: "STU002", name: "Ananya Patel", mobile: "9812345678", email: "ananya.patel@gmail.com", branch: "CSE-AI" },
-      { id: "STU003", name: "Rohan Verma", mobile: "9765432109", email: "rohan.verma@gmail.com", branch: "ECE" },
-      { id: "STU004", name: "Priya Singh", mobile: "9654321098", email: "priya.singh@gmail.com", branch: "IT" },
-      { id: "STU005", name: "Karan Gupta", mobile: "9543210987", email: "karan.gupta@gmail.com", branch: "ME" }
-    ];
     renderStudentsTable();
   }
 
@@ -351,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderStudentsTable();
 
       // Show success modal
-      modalDescription.textContent = `Student ${newStudent.name} (${newStudent.branch}) has been registered and stored in students.json!`;
+      modalDescription.textContent = `Student ${newStudent.name} (${newStudent.branch}) has been registered and stored in the database!`;
       successModal.classList.add('active');
 
       // Reset form controls
